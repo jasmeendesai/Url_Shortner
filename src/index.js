@@ -7,6 +7,7 @@ const dotenv = require('dotenv');
 const shortUrl = require('./route/shortUrlRoutes');
 const analyticRoute = require('./route/analyticRoute');
 const authRoutes = require('./route/auth'); // Updated path
+const swaggerDocs = require('./config/swaggerConfig');
 
 dotenv.config();
 require('./config/passport')(passport);
@@ -40,6 +41,8 @@ app.use(passport.session());
 app.use('/auth', authRoutes);
 app.use('/api/shorten', shortUrl);
 app.use('/api/analytics', analyticRoute);
+
+swaggerDocs(app);
 
 app.listen(PORT, () => {
   console.log(`Express app is running on port ${PORT}`);
