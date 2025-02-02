@@ -1,43 +1,20 @@
-const express = require("express");
+// const express = require("express");
 const urlModel = require("../model/urlModel"); 
 const validUrl = require("valid-url");
 const shortId = require("shortid");
 const axios = require("axios");
 const redis = require("redis");
 const { promisify } = require("util");
-require('dotenv').config();
 
-const { host, password } = process.env;
+const client = require('../config/redisConfig')
 
-const rateLimit = require("express-rate-limit");
-
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit to 10 requests per window per user
-  message: {
-    message: "Too many requests, please try again later",
-  },
-});
-
-// app.use("/api/shorten", limiter);
-
-
-// const client = redis.createClient({
-//   host: host,
-//   port: 18895,
-//   password: password,
-// });
-
-// client.on("error", console.error);
-// client.on("connect", () => console.log("Connected to Redis"));
-
-// const setCache = promisify(client.SET).bind(client);
-// const getCache = promisify(client.GET).bind(client);
 
 //=========================================CREATE SHORT URL===============================================
 const shortUrl = async (req, res) => {
   try {
+
     const { longUrl, customAlias, topic } = req.body; 
+
 
     const user = req.user
 
@@ -61,21 +38,28 @@ const shortUrl = async (req, res) => {
     const baseUrl = "http://localhost:3000/api/shorten/";
 
     // Check Redis Cache for the long URL
-    // let getDataCache = await getCache(longUrl);
-    // getDataCache = JSON.parse(getDataCache);
+    // let getDataCache = await getCache(`url:${longUrl}`);
+    let getDataCache = await client.get(longUrl);
 
-    // if (getDataCache) {
-    //   return res.status(200).send({
-    //     status: true,
-    //     message: "URL exists in cache",
-    //     data: getDataCache,
-    //   });
-    // }
+    getDataCache = JSON.parse(getDataCache);
+
+    if (getDataCache) {
+      return res.status(200).send({
+        status: true,
+        message: "URL exists in cache",
+        data: {
+          shortUrl : getDataCache.shortUrl,
+          createdAt : getDataCache.createdAt
+        },
+      });
+    }
 
     // Check database for the long URL
     const urlExists = await urlModel.findOne({ longUrl }, { _id: 0, __v: 0 });
     if (urlExists) {
-      // await setCache(longUrl, JSON.stringify(urlExists), "EX", 86400); // Cache for 1 day
+
+      await client.set(longUrl, JSON.stringify(urlExists), "EX", 86400); // Cache for 1 day
+      // await setCache(longUrl, JSON.stringify(urlExists)); // Cache for 1 day
       return res.status(200).send({
         status: true,
         message: "URL exists in database",
@@ -103,7 +87,9 @@ const shortUrl = async (req, res) => {
     });
 
     // Cache the new URL for future requests
-    // await setCache(longUrl, JSON.stringify(data), "EX", 86400);
+
+    await client.set(longUrl, JSON.stringify(data), "EX", 86400);
+    // await setCache(longUrl, JSON.stringify(data));
 
     
 
@@ -130,12 +116,13 @@ const getUrl = async (req, res) => {
 
 
     // Check Redis Cache for the URL
-    // let getDataCache = await getCache(urlCode);
 
-    // if (getDataCache) {
-    //   const url = JSON.parse(getDataCache);
-    //   return res.status(302).redirect(url.longUrl); // Redirect to original URL
-    // }
+    let getDataCache = await client.get(urlCode);
+
+    if (getDataCache) {
+      const url = JSON.parse(getDataCache);
+      return res.status(302).redirect(url.longUrl); // Redirect to original URL
+    }
 
     // Check database for the URL code
     const url = await urlModel.findOne({ urlCode });
@@ -170,8 +157,10 @@ const getUrl = async (req, res) => {
     await url.save();
 
     // Cache the URL for future requests
-    // await setCache(urlCode, JSON.stringify(url), "EX", 86400);
-    // Fetch geolocation data
+
+    await client.set(urlCode, JSON.stringify(url), "EX", 86400);
+    // await setCache(urlCode, JSON.stringify(url));
+
     
 
     return res.status(302).redirect(url.longUrl); 

@@ -4,12 +4,13 @@ const jwt = require('jsonwebtoken');
 
 require('dotenv').config()
 
+const {GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET} = process.env
 
 
 module.exports = function(passport) {
   passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    clientID: GOOGLE_CLIENT_ID,
+    clientSecret: GOOGLE_CLIENT_SECRET,
     callbackURL: 'http://localhost:3000/auth/google/callback'
   },
   async (accessToken, refreshToken, profile, done) => {
@@ -26,7 +27,7 @@ module.exports = function(passport) {
       }
 
       const payload = { id: user._id };
-      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
 
       done(null, { user, token });
     } catch (err) {

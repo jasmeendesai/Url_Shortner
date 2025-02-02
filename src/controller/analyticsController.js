@@ -192,7 +192,7 @@ const getOverAllAnalytics = async (req, res) => {
     const totalClicks = urlData.reduce((acc, curr)=> acc + curr.clicks, 0);
 
     // Unique users (based on unique IP addresses)
-    // const uniqueUsers = new Set(analytics.map((item)=> item.map((entry) => entry.ipAddress))).size;
+
     const uniqueUsers = new Set(analytics.flatMap((item) => item.map((entry) => entry.ipAddress))).size;
 
 
@@ -209,17 +209,7 @@ for (let i = 0; i < 7; i++) {
 
 
 
-    // const url = urlData.map((item)=> {
-    //     const uniqueUsers = new Set(item.analytics.map((entry) => entry.ipAddress)).size;
-
-    //     return {
-    //         shortUrl : item.shortUrl,
-    //         totalClicks : item.clicks,
-    //         uniqueUsers : uniqueUsers
-    //     }
-
-    // })
-
+ 
     
     // Group by OS
 
